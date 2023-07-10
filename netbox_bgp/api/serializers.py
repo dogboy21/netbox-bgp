@@ -199,6 +199,8 @@ class CommunitySerializer(NetBoxModelSerializer):
 
 
 class RoutingPolicyRuleSerializer(NetBoxModelSerializer):
+    routing_policy = NestedRoutingPolicySerializer()
+
     class Meta:
         model = RoutingPolicyRule
         fields = '__all__'
