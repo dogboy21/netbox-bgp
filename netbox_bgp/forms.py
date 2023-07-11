@@ -12,6 +12,7 @@ from utilities.forms.fields import (
     DynamicModelChoiceField, CSVModelChoiceField,
     DynamicModelMultipleChoiceField,
     TagFilterField, CSVChoiceField,
+    ChoiceField
 )
 from utilities.forms.widgets import APISelect, APISelectMultiple
 from netbox.forms import NetBoxModelForm, NetBoxModelBulkEditForm, NetBoxModelFilterSetForm, NetBoxModelImportForm  
@@ -21,7 +22,7 @@ from .models import (
     RoutingPolicyRule, PrefixList, PrefixListRule
 )
 
-from .choices import SessionStatusChoices, CommunityStatusChoices
+from .choices import SessionStatusChoices, CommunityStatusChoices, IPAddressFamilyChoices
 
 
 class CommunityForm(NetBoxModelForm):
@@ -427,10 +428,14 @@ class PrefixListForm(NetBoxModelForm):
         queryset=Tag.objects.all(),
         required=False
     )
+    family = ChoiceField(
+        required=True,
+        choices=IPAddressFamilyChoices,
+    )
 
     class Meta:
         model = PrefixList
-        fields = ['name', 'description', 'tags']
+        fields = ['name', 'description', 'family', 'tags']
 
 
 class PrefixListRuleForm(NetBoxModelForm):
