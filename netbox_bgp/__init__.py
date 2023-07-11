@@ -15,7 +15,7 @@ class BGPConfig(PluginConfig):
     max_version = '3.5.99'
     default_settings = {
         'device_ext_page': 'right',
-        'top_level_menu' : False,
+        'top_level_menu' : True,
     }
 
 
