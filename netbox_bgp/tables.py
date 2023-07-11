@@ -47,7 +47,7 @@ class CommunityTable(NetBoxTable):
 
 class BGPSessionTable(NetBoxTable):
     name = tables.LinkColumn()
-    device = tables.LinkColumn()
+    assigned_object = tables.LinkColumn(verbose_name='Assigned')
     local_address = tables.LinkColumn()
     local_as = tables.LinkColumn()
     remote_address = tables.LinkColumn()
@@ -64,12 +64,12 @@ class BGPSessionTable(NetBoxTable):
     class Meta(NetBoxTable.Meta):
         model = BGPSession
         fields = (
-            'pk', 'name', 'device', 'local_address', 'local_as',
+            'pk', 'name', 'assigned_object', 'local_address', 'local_as',
             'remote_address', 'remote_as', 'description', 'peer_group',
             'site', 'status', 'tenant'
         )
         default_columns = (
-            'pk', 'name', 'device', 'local_address', 'local_as',
+            'pk', 'name', 'assigned_object', 'local_address', 'local_as',
             'remote_address', 'remote_as', 'description',
             'site', 'status', 'tenant'
         )

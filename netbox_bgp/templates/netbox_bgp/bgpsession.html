@@ -57,13 +57,9 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Device</td>
+                        <td>Assigned</td>
                         <td>
-                            {% if object.device %}
-                            <a href="{{ object.device.get_absolute_url }}">{{ object.device }}</a>
-                            {% else %}
-                            <span class="text-muted">None</span>
-                            {% endif %}
+                            <a href="{{ object.assigned_object.get_absolute_url }}">{{ object.assigned_object }}</a>
                         </td>
                     </tr>
                     <tr>

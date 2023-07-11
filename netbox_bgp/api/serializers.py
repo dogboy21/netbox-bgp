@@ -9,13 +9,21 @@ from dcim.api.nested_serializers import NestedSiteSerializer, NestedDeviceSerial
 from tenancy.api.nested_serializers import NestedTenantSerializer
 from ipam.api.nested_serializers import NestedIPAddressSerializer, NestedASNSerializer
 
+from django.contrib.contenttypes.models import ContentType
+from netbox.api.fields import ContentTypeField
+
+from utilities.api import get_serializer_for_model
+from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
+from netbox.constants import NESTED_SERIALIZER_PREFIX
+
 
 from netbox_bgp.models import (
     BGPSession, RoutingPolicy, BGPPeerGroup,
     Community, RoutingPolicyRule, PrefixList, PrefixListRule,
 )
 
-from netbox_bgp.choices import CommunityStatusChoices, SessionStatusChoices
+from netbox_bgp.choices import CommunityStatusChoices, SessionStatusChoices, BGPSESSION_ASSIGNABLE_MODELS
 
 
 class SerializedPKRelatedField(PrimaryKeyRelatedField):
@@ -104,7 +112,10 @@ class BGPSessionSerializer(NetBoxModelSerializer):
     status = ChoiceField(choices=SessionStatusChoices, required=False)
     site = NestedSiteSerializer(required=False, allow_null=True)
     tenant = NestedTenantSerializer(required=False, allow_null=True)
-    device = NestedDeviceSerializer(required=False, allow_null=True)
+    assigned_object_type = ContentTypeField(
+        queryset=ContentType.objects.filter(BGPSESSION_ASSIGNABLE_MODELS),
+    )
+    assigned_object = serializers.SerializerMethodField(read_only=True)
     local_address = NestedIPAddressSerializer(required=True, allow_null=False)
     remote_address = NestedIPAddressSerializer(required=True, allow_null=False)
     local_as = NestedASNSerializer(required=True, allow_null=False)
@@ -144,12 +155,21 @@ class BGPSessionSerializer(NetBoxModelSerializer):
         fields = [
             'id', 'tags', 'custom_fields',
             'display', 'status', 'site', 'tenant',
-            'device', 'local_address', 'remote_address',
+            'assigned_object_type', 'assigned_object_id', 'assigned_object',
+            'local_address', 'remote_address',
             'local_as', 'remote_as', 'peer_group', 'import_policies',
             'export_policies', 'import_prefix_lists', 'export_prefix_lists',
             'created', 'last_updated', 'name', 'description'
             ]
 
+    @extend_schema_field(serializers.DictField())
+    def get_assigned_object(self, obj):
+        serializer = get_serializer_for_model(
+            obj.assigned_object,
+            prefix=NESTED_SERIALIZER_PREFIX,
+        )
+        context = {"request": self.context["request"]}
+        return serializer(obj.assigned_object, context=context).data
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

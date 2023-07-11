@@ -1,4 +1,5 @@
 from utilities.choices import ChoiceSet
+from django.db.models import Q
 
 
 class CommunityStatusChoices(ChoiceSet):
@@ -83,3 +84,10 @@ class IPAddressFamilyChoices(ChoiceSet):
         (FAMILY_4, 'IPv4'),
         (FAMILY_6, 'IPv6'),
     )
+
+
+BGPSESSION_ASSIGNABLE_MODELS = Q(
+    Q(app_label="dcim", model="device")
+    | Q(app_label="dcim", model="virtualchassis")
+    | Q(app_label="virtualization", model="virtualmachine"),
+)

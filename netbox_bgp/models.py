@@ -2,11 +2,16 @@ from django.urls import reverse
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 
 from netbox.models import NetBoxModel
 from ipam.fields import IPNetworkField
 
-from .choices import IPAddressFamilyChoices, SessionStatusChoices, ActionChoices, CommunityStatusChoices
+from dcim.models import Device, Interface, VirtualChassis
+from virtualization.models import VirtualMachine
+
+from .choices import IPAddressFamilyChoices, SessionStatusChoices, ActionChoices, CommunityStatusChoices, BGPSESSION_ASSIGNABLE_MODELS
 
 
 class RoutingPolicy(NetBoxModel):
@@ -174,11 +179,15 @@ class BGPSession(NetBoxModel):
         blank=True,
         null=True
     )
-    device = models.ForeignKey(
-        to='dcim.Device',
+    assigned_object_type = models.ForeignKey(
+        to=ContentType,
+        limit_choices_to=BGPSESSION_ASSIGNABLE_MODELS,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+    )
+    assigned_object_id = models.PositiveBigIntegerField()
+    assigned_object = GenericForeignKey(
+        ct_field="assigned_object_type",
+        fk_field="assigned_object_id",
     )
     local_address = models.ForeignKey(
         to='ipam.IPAddress',
@@ -240,10 +249,13 @@ class BGPSession(NetBoxModel):
 
     class Meta:
         verbose_name_plural = 'BGP Sessions'
-        unique_together = ['device', 'local_address', 'local_as', 'remote_address', 'remote_as']
+        unique_together = [
+            'assigned_object_type', 'assigned_object_id',
+           'local_address', 'local_as', 'remote_address', 'remote_as'
+        ]
 
     def __str__(self):
-        return f'{self.device}:{self.name}'
+        return f'{self.assigned_object}:{self.name}'
 
     def get_status_color(self):
         return SessionStatusChoices.colors.get(self.status)
@@ -409,3 +421,24 @@ class RoutingPolicyRule(NetBoxModel):
         if self.set_actions:
             return self.set_actions
         return {}
+
+GenericRelation(
+    to=BGPSession,
+    content_type_field="assigned_object_type",
+    object_id_field="assigned_object_id",
+    related_query_name="device",
+).contribute_to_class(Device, "accesslists")
+
+GenericRelation(
+    to=BGPSession,
+    content_type_field="assigned_object_type",
+    object_id_field="assigned_object_id",
+    related_query_name="virtual_chassis",
+).contribute_to_class(VirtualChassis, "accesslists")
+
+GenericRelation(
+    to=BGPSession,
+    content_type_field="assigned_object_type",
+    object_id_field="assigned_object_id",
+    related_query_name="virtual_machine",
+).contribute_to_class(VirtualMachine, "accesslists")

@@ -7,7 +7,8 @@ from netbox.filtersets import NetBoxModelFilterSet
 
 from .models import Community, BGPSession, RoutingPolicy, RoutingPolicyRule, BGPPeerGroup, PrefixList, PrefixListRule
 from ipam.models import IPAddress, ASN
-from dcim.models import Device
+from dcim.models import Device, VirtualChassis
+from virtualization.models import VirtualMachine
 
 
 class CommunityFilterSet(NetBoxModelFilterSet):
@@ -115,6 +116,30 @@ class BGPSessionFilterSet(NetBoxModelFilterSet):
         to_field_name='name',
         label='Device (name)',
     )
+    virtual_chassis_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='virtual_chassis__id',
+        queryset=VirtualChassis.objects.all(),
+        to_field_name='id',
+        label='Virtual Chassis (ID)',
+    )
+    virtual_chassis = django_filters.ModelMultipleChoiceFilter(
+        field_name='virtual_chassis__name',
+        queryset=VirtualChassis.objects.all(),
+        to_field_name='name',
+        label='Virtual Chassis (name)',
+    )
+    virtual_machine_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='virtual_machine__id',
+        queryset=VirtualMachine.objects.all(),
+        to_field_name='id',
+        label='Virtual Machine (ID)',
+    )
+    virtual_machine = django_filters.ModelMultipleChoiceFilter(
+        field_name='virtual_machine__name',
+        queryset=VirtualMachine.objects.all(),
+        to_field_name='name',
+        label='Virtual Machine (name)',
+    )
     by_remote_address = django_filters.CharFilter(
         method='search_by_remote_ip',
         label='Remote Address',
@@ -126,7 +151,7 @@ class BGPSessionFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = BGPSession
-        fields = ['name', 'description', 'status', 'tenant']
+        fields = ['name', 'description', 'status', 'tenant', 'device__id', 'device__name', 'virtual_chassis__id', 'virtual_chassis__name', 'virtual_machine__id', 'virtual_machine__name']
 
     def search(self, queryset, name, value):
         """Perform the filtered search."""

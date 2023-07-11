@@ -70,11 +70,13 @@ class BGPSessionListView(generic.ObjectListView):
 class BGPSessionEditView(generic.ObjectEditView):
     queryset = BGPSession.objects.all()
     form = forms.BGPSessionForm
+    template_name = 'netbox_bgp/bgpsession_edit.html'
 
 
 class BGPSessionAddView(generic.ObjectEditView):
     queryset = BGPSession.objects.all()
     form = forms.BGPSessionAddForm
+    template_name = 'netbox_bgp/bgpsession_edit.html'
 
 
 class BGPSessionBulkDeleteView(generic.BulkDeleteView):

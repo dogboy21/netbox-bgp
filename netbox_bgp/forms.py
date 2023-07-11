@@ -24,6 +24,9 @@ from .models import (
 
 from .choices import SessionStatusChoices, CommunityStatusChoices, IPAddressFamilyChoices
 
+from dcim.models import Device, VirtualChassis
+from virtualization.models import VirtualMachine
+
 
 class CommunityForm(NetBoxModelForm):
     tags = DynamicModelMultipleChoiceField(
@@ -123,13 +126,34 @@ class BGPSessionForm(NetBoxModelForm):
         queryset=Site.objects.all(),
         required=False
     )
+
+    # Device selector
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         required=False,
         query_params={
-            'site_id': '$site'
-        }
+            'site_id': '$site',
+        },
+        label=_('Device')
     )
+
+    # Virtual Chassis selector
+    virtual_chassis = DynamicModelChoiceField(
+        queryset=VirtualChassis.objects.all(),
+        required=False,
+        label=_('Virtual chassis')
+    )
+
+    # Virtual Machine selector
+    virtual_machine = DynamicModelChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        query_params={
+            'site_id': '$site',
+        },
+        label=_('Virtual machine')
+    )
+
     tenant = DynamicModelChoiceField(
         queryset=Tenant.objects.all(),
         required=False
@@ -148,7 +172,8 @@ class BGPSessionForm(NetBoxModelForm):
     local_address = DynamicModelChoiceField(
         queryset=IPAddress.objects.all(),
         query_params={
-            'device_id': '$device'
+            'device_id': '$device',
+            'virtual_machine_id': '$virtual_machine',
         }
     )
     remote_address = DynamicModelChoiceField(
@@ -193,13 +218,13 @@ class BGPSessionForm(NetBoxModelForm):
     class Meta:
         model = BGPSession
         fields = [
-            'name', 'site', 'device',
+            'name', 'site', 'device', 'virtual_chassis', 'virtual_machine',
             'local_as', 'remote_as', 'local_address', 'remote_address',
             'description', 'status', 'peer_group', 'tenant', 'tags', 'import_policies', 'export_policies',
             'import_prefix_lists', 'export_prefix_lists'
         ]
         fieldsets = (
-            ('Session', ('name', 'site', 'device', 'description', 'status', 'peer_group', 'tenant', 'tags')),
+            ('Session', ('name', 'site', 'device', 'virtual_chassis', 'virtual_machine', 'description', 'status', 'peer_group', 'tenant', 'tags')),
             ('Remote', ('remote_as', 'remote_address')),
             ('Local', ('local_as', 'local_address')),
             ('Policies', ('import_policies', 'export_policies')),
@@ -208,6 +233,52 @@ class BGPSessionForm(NetBoxModelForm):
         widgets = {
             'status': forms.Select(),
         }
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.get("instance")
+        initial = kwargs.get("initial", {}).copy()
+        if instance:
+            if isinstance(instance.assigned_object, Device):
+                initial["device"] = instance.assigned_object
+            elif isinstance(instance.assigned_object, VirtualMachine):
+                initial["virtual_machine"] = instance.assigned_object
+            elif isinstance(instance.assigned_object, VirtualChassis):
+                initial["virtual_chassis"] = instance.assigned_object
+
+        print(initial)
+
+        kwargs["initial"] = initial
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        device = cleaned_data.get("device")
+        virtual_chassis = cleaned_data.get("virtual_chassis")
+        virtual_machine = cleaned_data.get("virtual_machine")
+
+        if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
+            raise forms.ValidationError(
+                "BGP Sessions must be assigned to one target at a time. Either a device, virtual chassis or virtual machine."
+            )
+
+        # Check if no hosts selected.
+        if not device and not virtual_chassis and not virtual_machine:
+            raise forms.ValidationError(
+                "BGP Sessions must be assigned to a device, virtual chassis or virtual machine.",
+            )
+
+        return cleaned_data
+
+    def save(self, *args, **kwargs):
+        # Set assigned object
+        self.instance.assigned_object = (
+                self.cleaned_data.get('device')
+                or self.cleaned_data.get('virtual_chassis')
+                or self.cleaned_data.get('virtual_machine')
+        )
+
+        return super().save(*args, **kwargs)
 
 
 class BGPSessionAddForm(BGPSessionForm):
