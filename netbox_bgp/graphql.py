@@ -35,11 +35,25 @@ class RoutingPolicyType(NetBoxObjectType):
         filterset_class = filters.RoutingPolicyFilterSet
 
 
+class RoutingPolicyRuleType(NetBoxObjectType):
+    class Meta:
+        model = models.RoutingPolicyRule
+        fields = '__all__'
+        filterset_class = filters.RoutingPolicyRuleFilterSet
+
+
 class PrefixListType(NetBoxObjectType):
     class Meta:
         model = models.PrefixList
         fields = '__all__'
         filterset_class = filters.PrefixListFilterSet
+
+
+class PrefixListRuleType(NetBoxObjectType):
+    class Meta:
+        model = models.PrefixListRule
+        fields = '__all__'
+        filterset_class = filters.PrefixListRuleFilterSet
 
 
 class BGPQuery(ObjectType):
@@ -55,8 +69,14 @@ class BGPQuery(ObjectType):
     routing_policy = ObjectField(RoutingPolicyType)
     routing_policy_list = ObjectListField(RoutingPolicyType)
 
+    routing_policy_rule = ObjectField(RoutingPolicyRuleType)
+    routing_policy_rule_list = ObjectListField(RoutingPolicyRuleType)
+
     prefix_list = ObjectField(PrefixListType)
     prefix_list_list = ObjectListField(PrefixListType)
+
+    prefix_list_rule = ObjectField(PrefixListRuleType)
+    prefix_list_rule_list = ObjectListField(PrefixListRuleType)
 
 
 schema = BGPQuery
